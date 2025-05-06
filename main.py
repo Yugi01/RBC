@@ -24,11 +24,23 @@ def get_pseudo_legal_castling(board):
     return castle_moves
 
 def get_pl_castle_moves(board):
+    temp = []
     castle_moves = get_pseudo_legal_castling(without_opponent_pieces(board))
-    return castle_moves
+    for move in castle_moves:
+        if not is_illegal_castle(board, chess.Move.from_uci(move)):
+            temp.append(move)
+    return temp
 
 def exec_move(move):
     board.push(chess.Move.from_uci(move))
+
+def remove_dups(list_moves):
+    seen = []
+    for move in list_moves:
+        if move in seen:
+            continue
+        seen.append(move)
+    return seen
 
 def get_moves(board):
     null_move = ["0000"]
@@ -36,7 +48,7 @@ def get_moves(board):
     pl_castle = get_pl_castle_moves(board)
     all_moves = null_move + pl_castle + pl_moves
     all_moves.sort()
-    return all_moves
+    return remove_dups(all_moves)
 
 # print(board)
 # move = input()
