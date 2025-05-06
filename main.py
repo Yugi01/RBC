@@ -8,7 +8,7 @@ def exec_move(move):
     board.push(chess.Move.from_uci(move))
 
 
-print(board)
-# move = input()
-# exec_move(move)
-# print(board.fen())
+# print(board)
+move = input()
+exec_move(move)
+print(board.fen())
