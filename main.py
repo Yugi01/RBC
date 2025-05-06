@@ -31,7 +31,7 @@ def get_pl_castle_moves(board):
             temp.append(move)
     return temp
 
-def exec_move(move):
+def exec_move(board,move):
     board.push(chess.Move.from_uci(move))
 
 def remove_dups(list_moves):
@@ -54,7 +54,19 @@ def get_moves(board):
 # move = input()
 # exec_move(move)
 # print(board.fen())
-all_moves = get_moves(board)
 
-for move in all_moves:
-    print(move)
+def all_state(board):
+    copy_board = board
+    all_moves = get_moves(board)
+    all_out = []
+    for move in all_moves:
+        exec_move(copy_board,move)
+        all_out.append(copy_board.fen())
+        copy_board.pop()
+    all_out.sort()
+    return all_out
+    
+# print(all_state(board))
+# print(all_state(board))
+for state in all_state(board):
+    print(state)
