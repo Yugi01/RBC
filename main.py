@@ -8,7 +8,6 @@ fen_input = input()
 
 board = chess.Board(fen_input)
 
-
 def get_pseudo_legal_castling(board):
     castle_moves = []
     if(chess.WHITE):
@@ -50,23 +49,27 @@ def get_moves(board):
     all_moves.sort()
     return remove_dups(all_moves)
 
-# print(board)
-# move = input()
-# exec_move(move)
-# print(board.fen())
-
-def all_state(board):
+def get_all_possible_future_from_move(board,moves):
     copy_board = board
-    all_moves = get_moves(board)
     all_out = []
-    for move in all_moves:
+    for move in moves:
         exec_move(copy_board,move)
         all_out.append(copy_board.fen())
         copy_board.pop()
     all_out.sort()
     return all_out
     
-# print(all_state(board))
-# print(all_state(board))
-for state in all_state(board):
+def attacking_squares(square):
+    moves_to_exec = []
+    opp_colour = board.turn
+    attackers = board.attackers(opp_colour,chess.parse_square(square))
+    for move in [chess.square_name(sq) for sq in attackers]:
+        moves_to_exec.append(move+square)
+    return moves_to_exec
+
+square = input()
+print(attacking_squares(square))
+
+# all possible future states
+for state in get_all_possible_future_from_move(board,attacking_squares(square)):
     print(state)
