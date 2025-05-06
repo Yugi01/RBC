@@ -19,4 +19,7 @@ def get_moves(fen):
 # move = input()
 # exec_move(move)
 # print(board.fen())
-print(get_moves(board.fen()))
+all_moves = get_moves(board.fen())
+
+for move in all_moves:
+    print(move)
