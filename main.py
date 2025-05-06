@@ -68,8 +68,6 @@ def attacking_squares(square):
     return moves_to_exec
 
 square = input()
-print(attacking_squares(square))
-
 # all possible future states
 for state in get_all_possible_future_from_move(board,attacking_squares(square)):
     print(state)
