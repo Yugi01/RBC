@@ -4,10 +4,6 @@ from reconchess.utilities import is_illegal_castle
 from reconchess.utilities import is_psuedo_legal_castle
 from reconchess.utilities import without_opponent_pieces
 
-fen_input = input()
-
-board = chess.Board(fen_input)
-
 def get_pseudo_legal_castling(board):
     castle_moves = []
     if(chess.WHITE):
@@ -67,7 +63,47 @@ def attacking_squares(square):
         moves_to_exec.append(move+square)
     return moves_to_exec
 
-square = input()
+def useable_sensor_out(sensor):
+    temp = sensor.split(";")
+    sensor_out = []
+    for info in temp:
+        square,piece = info.split(":")
+        piece = "None" if piece == '?' else piece
+        sensor_out.append({square:piece})
+    return sensor_out
+
+def reconsile_sensor(boards,sensor):
+    working_boards = []
+    matching = True
+    for board in boards:
+        for sen in sensor:
+            for square,piece in sen.items():
+                if str(board.piece_at(chess.parse_square(square))) == piece:
+                    continue
+                matching = False
+        if matching:
+            working_boards.append(board.fen())
+        matching = True
+    working_boards.sort()
+    return working_boards
+            
+        
+        
+
+num_inputs = int(input())
+boards = []
+for i in range(num_inputs):
+    fen_input = input()
+    boards.append(chess.Board(fen_input))
+
+sensor_raw = input()
+
+useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
+
+for board in useful_board:
+    print(board)
+
+# square = input()
 # all possible future states
-for state in get_all_possible_future_from_move(board,attacking_squares(square)):
-    print(state)
+# for state in get_all_possible_future_from_move(board,attacking_squares(square)):
+#     print(state)
