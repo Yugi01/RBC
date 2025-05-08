@@ -3,6 +3,12 @@ from reconchess.utilities import moves_without_opponent_pieces
 from reconchess.utilities import is_illegal_castle
 from reconchess.utilities import is_psuedo_legal_castle
 from reconchess.utilities import without_opponent_pieces
+import chess.engine
+
+#local
+# engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
+#marking
+engine = chess.engine.SimpleEngine.popen_uci('/opt/stockfish/stockfish', setpgrp=True)
 
 def get_pseudo_legal_castling(board):
     castle_moves = []
@@ -86,24 +92,51 @@ def reconsile_sensor(boards,sensor):
         matching = True
     working_boards.sort()
     return working_boards
-            
-        
-        
 
-num_inputs = int(input())
-boards = []
-for i in range(num_inputs):
-    fen_input = input()
-    boards.append(chess.Board(fen_input))
+#TROUTBOT CHOOSE_MOVE        
+def choose_move(board,color):
+        # if we might be able to take the king, try to
+        enemy_king_square = board.king(not color)
+        if enemy_king_square:
+            # if there are any ally pieces that can take king, execute one of those moves
+            enemy_king_attackers = board.attackers(color, enemy_king_square)
+            if enemy_king_attackers:
+                attacker_square = enemy_king_attackers.pop()
+                return chess.Move(attacker_square, enemy_king_square)
 
-sensor_raw = input()
+        # otherwise, try to move with the stockfish chess engine
+        try:
+            board.turn = color
+            board.clear_stack()
+            result = engine.play(board, chess.engine.Limit(time=0.4))
+            return result.move
+        except chess.engine.EngineTerminatedError:
+            print('Stockfish Engine died')
+        except chess.engine.EngineError:
+            print('Stockfish Engine bad state at "{}"'.format(board.fen()))
 
-useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
+        # if all else fails, pass
+        return None
 
-for board in useful_board:
-    print(board)
+    
+fen_input = input()
+board = chess.Board(fen_input)
+print(choose_move(board,board.turn))
+# num_inputs = int(input())
+# boards = []
+# for i in range(num_inputs):
+#     fen_input = input()
+#     boards.append(chess.Board(fen_input))
+
+# sensor_raw = input()
+
+# useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
+
+# for board in useful_board:
+#     print(board)
 
 # square = input()
 # all possible future states
 # for state in get_all_possible_future_from_move(board,attacking_squares(square)):
 #     print(state)
+engine.quit()
