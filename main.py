@@ -61,7 +61,7 @@ def get_all_possible_future_from_move(board,moves):
     all_out.sort()
     return all_out
     
-def attacking_squares(square):
+def attacking_squares(board,square):
     moves_to_exec = []
     opp_colour = board.turn
     attackers = board.attackers(opp_colour,chess.parse_square(square))
@@ -108,8 +108,8 @@ def choose_move(board,color):
         try:
             board.turn = color
             board.clear_stack()
-            result = engine.play(board, chess.engine.Limit(time=0.4))
-            return result.move
+            result = engine.play(board, chess.engine.Limit(time=0.1))
+            return result.move.uci()
         except chess.engine.EngineTerminatedError:
             print('Stockfish Engine died')
         except chess.engine.EngineError:
@@ -118,16 +118,20 @@ def choose_move(board,color):
         # if all else fails, pass
         return None
 
-    
-fen_input = input()
-board = chess.Board(fen_input)
-print(choose_move(board,board.turn))
-# num_inputs = int(input())
-# boards = []
-# for i in range(num_inputs):
-#     fen_input = input()
-#     boards.append(chess.Board(fen_input))
+def best_move(boards):
+    best_moves=[]
+    for board in boards:
+        best_moves.append(choose_move(board,board.turn))
+    best_moves.sort()
+    best_move = max(best_moves, key=best_moves.count)
+    return best_move
 
+num_inputs = int(input())
+boards = []
+for i in range(num_inputs):
+    fen_input = input()
+    boards.append(chess.Board(fen_input))
+print(best_move(boards))
 # sensor_raw = input()
 
 # useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
