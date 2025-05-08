@@ -3,3 +3,5 @@ prev_games/
 
 __pycache__/
 *.pyc
+
+stockfish
