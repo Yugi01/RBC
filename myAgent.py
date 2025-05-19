@@ -75,9 +75,6 @@ class MyAgent(Player):
             self.board.push(chess.Move.null())
             self.all_possible_boards = [self.board.copy()]
 
-
-
-
     def handle_game_end(self, winner_color, win_reason, game_history):
         try:
             # if the engine is already terminated then this call will throw an exception
