@@ -14,8 +14,7 @@ class MyAgent(Player):
         self.engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
         #marking
         # self.engine = chess.engine.SimpleEngine.popen_uci('/opt/stockfish/stockfish', setpgrp=True)
-        
-        
+                
     def handle_game_start(self, color, board, opponent_name):
         self.board = board.copy()
         self.all_possible_boards = [self.board]
@@ -39,34 +38,6 @@ class MyAgent(Player):
             else:
                 self.board.set_piece_at(square, piece)
 
-    # def choose_move(self, move_actions, seconds_left):
-        
-    #     self.all_possible_boards = [
-    #         chess.Board(fen) for fen in get_all_possible_future_from_move(self.board, get_moves(self.board))
-    #     ]
-    #     # print(self.all_possible_boards)
-    #     move_str = best_move(self.all_possible_boards, self.engine)  # e.g. 'e2e4'
-
-    #     if not move_str:
-    #         # print("best_move returned None")
-    #         return None
-
-    #     try:
-    #         move = chess.Move.from_uci(move_str)
-    #         # print(f"Trying move: {move.uci()}")
-
-    #         for legal in move_actions:
-    #             if move.uci() == legal.uci():
-    #                 return legal
-    #         # print(f"Move {move.uci()} is not in move_actions!")
-    #         # print(f"Available moves: {[m.uci() for m in move_actions]}")
-    #         return None
-
-    #     except Exception as e:
-    #         # print(f"Invalid UCI move from best_move: {move_str}")
-    #         # print(f"Exception: {e}")
-    #         return None
-
     def choose_move(self, move_actions, seconds_left):
 
         try:
@@ -86,8 +57,6 @@ class MyAgent(Player):
         print("requst",requested_move)
         print("taken",taken_move)
         if taken_move is not None:
-            # Only filter against boards where move is still legal,
-            # and push the move inside filter_my_move
             filtered = filter_my_move(self.all_possible_boards, taken_move)
 
             if filtered:
