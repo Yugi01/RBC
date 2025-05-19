@@ -68,9 +68,9 @@ class MyAgent(Player):
     #         return None
 
     def choose_move(self, move_actions, seconds_left):
-        if self.board.turn != self.color:
-            return None  # Not your turn
+
         try:
+            self.board.turn = self.color
             my_move = stockfish_move(self.board, self.engine)
             if my_move in move_actions:
                 return chess.Move.from_uci(my_move)
@@ -81,34 +81,7 @@ class MyAgent(Player):
         # my_move = stockfish_move(self.board,self.engine)
         print(my_move)
         return(chess.Move.from_uci(my_move))
-        parsed_move = chess.Move.from_uci(my_move)
-        print(parsed_move)
-        print(move_actions)
-        if parsed_move in move_actions:
-            print("I AM HERE")
-            return parsed_move
-
-        # move_str = stockfish_move(self.board, self.engine)
-        # if not move_str:
-        #     print("Stockfish returned None")
-        #     return None
-
-        # print(f"My move suggestion: {move_str}")
-        # print(f"Legal move_actions: {[m.uci() for m in move_actions]}")
-
-        # for legal_move in move_actions:
-        #     if legal_move.uci() == move_str:
-        #         return legal_move
-
-        # if move_actions:
-        #     fallback = random.choice(move_actions)
-        #     print(f"Fallback to: {fallback.uci()}")
-        #     return fallback
-
-        # return None
-
-
-
+        
     def handle_move_result(self, requested_move, taken_move, captured_opponent_piece, capture_square):
         print("requst",requested_move)
         print("taken",taken_move)
@@ -118,7 +91,6 @@ class MyAgent(Player):
             filtered = filter_my_move(self.all_possible_boards, taken_move)
 
             if filtered:
-                print("FILTER?")
                 self.all_possible_boards = filtered
                 self.board = filtered[0]  # Already has move applied
             else:
