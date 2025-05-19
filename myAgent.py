@@ -10,6 +10,7 @@ class MyAgent(Player):
         self.all_possible_boards = None
         self.color = None
         self.my_piece_captured_square = None
+
         #local
         self.engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
         #marking
@@ -43,37 +44,25 @@ class MyAgent(Player):
         try:
             self.board.turn = self.color
             my_move = stockfish_move(self.board, self.engine)
-            if my_move in move_actions:
-                return chess.Move.from_uci(my_move)
-            print("Stockfish returned:", my_move)
+            if my_move in str(move_actions):
+                return(chess.Move.from_uci(my_move))
         except Exception as e:
-            print("ERROR calling stockfish_move:", e)
             return None
-        # my_move = stockfish_move(self.board,self.engine)
-        print(my_move)
-        return(chess.Move.from_uci(my_move))
         
     def handle_move_result(self, requested_move, taken_move, captured_opponent_piece, capture_square):
-        print("requst",requested_move)
-        print("taken",taken_move)
+
         if taken_move is not None:
             filtered = filter_my_move(self.all_possible_boards, taken_move)
 
-            if filtered:
+            if not filtered:
                 self.all_possible_boards = filtered
                 self.board = filtered[0]  # Already has move applied
+                return
+
+            if taken_move in self.board.legal_moves:
+                self.board.push(taken_move)
             else:
-                print(f"WARNING: No boards matched taken move {taken_move}. Resetting.")
-                # Fallback: apply move to our current board only if it's legal
-                if taken_move in self.board.legal_moves:
-                    self.board.push(taken_move)
-                else:
-                    print(f"ERROR: Cannot push move {taken_move}, not legal on fallback board.")
-                self.all_possible_boards = [self.board.copy()]
-        else:
-            print("No move taken. Pushing null move.")
-            self.board.push(chess.Move.null())
-            self.all_possible_boards = [self.board.copy()]
+                self.board.push(chess.Move.null())
 
     def handle_game_end(self, winner_color, win_reason, game_history):
         try:
