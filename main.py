@@ -116,7 +116,7 @@ def stockfish_move(board,engine):
         # otherwise, try to move with the stockfish chess engine
         try:
             board.clear_stack()
-            result = engine.play(board, chess.engine.Limit(time=0.1))
+            result = engine.play(board, chess.engine.Limit(time=0.5))
             return result.move.uci()
         except chess.engine.EngineTerminatedError:
             print('Stockfish Engine died')
@@ -140,23 +140,3 @@ def best_move(boards, engine):
 
     # print(best_moves)
     return max(set(best_moves), key=best_moves.count)
-
-
-# num_inputs = int(input())
-# boards = []
-# for i in range(num_inputs):
-#     fen_input = input()
-#     boards.append(chess.Board(fen_input))
-# print(best_move(boards))
-# sensor_raw = input()
-
-# useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
-
-# for board in useful_board:
-#     print(board)
-
-# square = input()
-# all possible future states
-# for state in get_all_possible_future_from_move(board,attacking_squares(square)):
-#     print(state)
-# engine.quit()
