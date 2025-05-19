@@ -8,11 +8,11 @@ import chess.engine
 #local
 # engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
 #marking
-engine = chess.engine.SimpleEngine.popen_uci('/opt/stockfish/stockfish', setpgrp=True)
+# engine = chess.engine.SimpleEngine.popen_uci('/opt/stockfish/stockfish', setpgrp=True)
 
 def get_pseudo_legal_castling(board):
     castle_moves = []
-    if(chess.WHITE):
+    if(board.turn == chess.WHITE):
         if bool(board.castling_rights & chess.BB_H1):
             castle_moves.append("e1g1")
         if bool(board.castling_rights & chess.BB_A1):
@@ -52,12 +52,11 @@ def get_moves(board):
     return remove_dups(all_moves)
 
 def get_all_possible_future_from_move(board,moves):
-    copy_board = board
     all_out = []
     for move in moves:
+        copy_board = board.copy()
         exec_move(copy_board,move)
         all_out.append(copy_board.fen())
-        copy_board.pop()
     all_out.sort()
     return all_out
     
@@ -93,20 +92,29 @@ def reconsile_sensor(boards,sensor):
     working_boards.sort()
     return working_boards
 
+def filter_my_move(boards, my_move):
+    filtered = []
+    for board in boards:
+        if my_move in board.legal_moves:
+            board_copy = board.copy()
+            board_copy.push(my_move)
+            filtered.append(board_copy)
+    return filtered
+
 #TROUTBOT CHOOSE_MOVE        
-def choose_move(board,color):
+def stockfish_move(board,engine):
+
         # if we might be able to take the king, try to
-        enemy_king_square = board.king(not color)
+        enemy_king_square = board.king(not board.turn)
         if enemy_king_square:
             # if there are any ally pieces that can take king, execute one of those moves
-            enemy_king_attackers = board.attackers(color, enemy_king_square)
+            enemy_king_attackers = board.attackers(board.turn, enemy_king_square)
             if enemy_king_attackers:
                 attacker_square = enemy_king_attackers.pop()
-                return chess.Move(attacker_square, enemy_king_square)
+                return chess.Move(attacker_square, enemy_king_square).uci()
 
         # otherwise, try to move with the stockfish chess engine
         try:
-            board.turn = color
             board.clear_stack()
             result = engine.play(board, chess.engine.Limit(time=0.1))
             return result.move.uci()
@@ -118,20 +126,28 @@ def choose_move(board,color):
         # if all else fails, pass
         return None
 
-def best_move(boards):
-    best_moves=[]
-    for board in boards:
-        best_moves.append(choose_move(board,board.turn))
-    best_moves.sort()
-    best_move = max(best_moves, key=best_moves.count)
-    return best_move
+def best_move(boards, engine):
+    best_moves = []
 
-num_inputs = int(input())
-boards = []
-for i in range(num_inputs):
-    fen_input = input()
-    boards.append(chess.Board(fen_input))
-print(best_move(boards))
+    for board in boards:
+        if board.turn == chess.WHITE:  # or self.color
+            move = stockfish_move(board, engine)
+            if move:
+                best_moves.append(move)
+
+    if not best_moves:
+        return None
+
+    # print(best_moves)
+    return max(set(best_moves), key=best_moves.count)
+
+
+# num_inputs = int(input())
+# boards = []
+# for i in range(num_inputs):
+#     fen_input = input()
+#     boards.append(chess.Board(fen_input))
+# print(best_move(boards))
 # sensor_raw = input()
 
 # useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
@@ -143,4 +159,4 @@ print(best_move(boards))
 # all possible future states
 # for state in get_all_possible_future_from_move(board,attacking_squares(square)):
 #     print(state)
-engine.quit()
+# engine.quit()
