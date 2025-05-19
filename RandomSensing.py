@@ -4,7 +4,7 @@ from reconchess import *
 import os
 from main import *
 
-class MyAgent(Player):
+class RandomSensing(Player):
     def __init__(self):
         self.board = None
         self.all_possible_boards = None
