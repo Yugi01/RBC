@@ -47,12 +47,13 @@ def remove_dups(list_moves):
     return seen
 
 def get_moves(board):
+    board_copy = board.copy()
     null_move = ["0000"]
-    pl_moves = [str(move) for move in board.pseudo_legal_moves]
-    pl_castle = get_pl_castle_moves(board)
+    pl_moves = [str(move) for move in board_copy.pseudo_legal_moves]
+    pl_castle = get_pl_castle_moves(board_copy)
     all_moves = null_move + pl_castle + pl_moves
     # all_moves.sort()
-    return remove_dups(all_moves)
+    return set(all_moves)
 
 def get_all_possible_future_from_move(board,moves):
     all_out = set()
@@ -63,10 +64,12 @@ def get_all_possible_future_from_move(board,moves):
     # all_out.sort()
     return all_out
     
+    
 def attacking_squares(board,square):
     moves_to_exec = []
     opp_colour = not board.turn
-    attackers = board.attackers(opp_colour,chess.parse_square(square))
+    body_copy = board.copy()
+    attackers = body_copy.attackers(opp_colour,chess.parse_square(square))
     for move in [chess.square_name(sq) for sq in attackers]:
         moves_to_exec.append(move+square)
     return moves_to_exec
@@ -82,39 +85,53 @@ def useable_sensor_out(sensor):
 
 def reconsile_sensor(fens,sensor):
     working_boards = set()
+    print("FEN LEN GEN:",len(fens))
+    print(fens)
     for fen in fens:
         matching = True
         board = chess.Board(fen)
         for square,piece in sensor:
-            if board.piece_at(square) != piece:
-                matching = False
-                break
+            
+            actual = board.piece_at(square)
+
+            if actual is None and piece is None:
+                continue
+            elif actual is not None and piece is not None and \
+                actual.piece_type == piece.piece_type and \
+                actual.color == piece.color:
+                print("FEN: ",fen)
+                print("SENSOR: ", [(chess.square_name(s),p) for s,p in sensor] )
+                continue
+
+            matching = False
+            break
         if matching:
             working_boards.add(board.fen())
-
+        # matching = True
+    # working_boards.sort()
+    print("WORKING BOARDS LEN",len(working_boards))
     return working_boards
 
 def filter_my_move(fens, my_move,color):
     filtered = set()
+    if(len(fens)==0):
+        raise ValueError("FENS ARE empty")
     for fen in fens:
         board = chess.Board(fen)
         board.turn = color
         if my_move in board.legal_moves:
             board.push(my_move)
             filtered.add(board.fen())
+            
     if not filtered:
-        print(f"[DESYNC] No board believed {my_move.uci()} was legal out of {len(fens)}")
-        for fen in fens:
-            board = chess.Board(fen)
-            board.turn = color
-            if my_move in board.legal_moves:
-                print(f"[!] THIS board believed the move was legal: {fen}")
-    # if len(filtered)>8000:
-    #     filtered = random.sample(filtered, 8000)
+        return fens
+    
+    if len(filtered)>8000:
+        filtered = set(random.sample(list(filtered), 8000))
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
-def stockfish_move(board,engine,time_per_board):
+def stockfish_move(board,engine,time_per_board,color):
 
         # if we might be able to take the king, try to
         enemy_king_square = board.king(not board.turn)
@@ -123,13 +140,14 @@ def stockfish_move(board,engine,time_per_board):
             enemy_king_attackers = board.attackers(board.turn, enemy_king_square)
             if enemy_king_attackers:
                 attacker_square = enemy_king_attackers.pop()
-                return chess.Move(attacker_square, enemy_king_square).uci()
+                return chess.Move(attacker_square, enemy_king_square)
 
         # otherwise, try to move with the stockfish chess engine
         try:
             board.clear_stack()
+            board.turn = color
             result = engine.play(board, chess.engine.Limit(time=time_per_board))
-            return result.move.uci()
+            return result.move
         except chess.engine.EngineTerminatedError:
             print('Stockfish Engine died')
         except chess.engine.EngineError:
@@ -148,22 +166,26 @@ def best_move(fens, engine, move_actions, color):
         fen_list = random.sample(fen_list, 8000)
         N = 8000
     
-    time_per_board = 10/N if N>0 else 10
+    time_per_board = 8/N if N>0 else 8
 
     best_moves = []
 
     for fen in fen_list:
         board = chess.Board(fen)
+        # print(fen)
+        # board_copy = board.copy()
         # board.turn = color  # ensure correct turn
-        move = stockfish_move(board,engine,time_per_board)
+        move = stockfish_move(board,engine,time_per_board,color)
         if move:
             for legal in move_actions:
+                # print("LEGAL",legal)
+                # print()
                 # print(move == str(legal))
                 # print(move," ",legal)
                 # print(move_actions)
-                if move == str(legal):
+                if move == legal:
                     # print("here")
-                    best_moves.append(legal)
+                    best_moves.append(move)
                     break
 
     if not best_moves:
