@@ -4,6 +4,9 @@ from reconchess.utilities import is_illegal_castle
 from reconchess.utilities import is_psuedo_legal_castle
 from reconchess.utilities import without_opponent_pieces
 import chess.engine
+from collections import Counter
+import random
+import time
 
 #local
 # engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
@@ -33,7 +36,7 @@ def get_pl_castle_moves(board):
     return temp
 
 def exec_move(board,move):
-    board.push(chess.Move.from_uci(move))
+    board.push(move)
 
 def remove_dups(list_moves):
     seen = []
@@ -48,21 +51,21 @@ def get_moves(board):
     pl_moves = [str(move) for move in board.pseudo_legal_moves]
     pl_castle = get_pl_castle_moves(board)
     all_moves = null_move + pl_castle + pl_moves
-    all_moves.sort()
+    # all_moves.sort()
     return remove_dups(all_moves)
 
 def get_all_possible_future_from_move(board,moves):
-    all_out = []
+    all_out = set()
     for move in moves:
         copy_board = board.copy()
-        exec_move(copy_board,move)
-        all_out.append(copy_board.fen())
-    all_out.sort()
+        copy_board.push(move)
+        all_out.add(copy_board.fen())
+    # all_out.sort()
     return all_out
     
 def attacking_squares(board,square):
     moves_to_exec = []
-    opp_colour = board.turn
+    opp_colour = not board.turn
     attackers = board.attackers(opp_colour,chess.parse_square(square))
     for move in [chess.square_name(sq) for sq in attackers]:
         moves_to_exec.append(move+square)
@@ -77,32 +80,41 @@ def useable_sensor_out(sensor):
         sensor_out.append({square:piece})
     return sensor_out
 
-def reconsile_sensor(boards,sensor):
-    working_boards = []
-    matching = True
-    for board in boards:
-        for sen in sensor:
-            for square,piece in sen.items():
-                if str(board.piece_at(chess.parse_square(square))) == piece:
-                    continue
-                matching = False
-        if matching:
-            working_boards.append(board.fen())
+def reconsile_sensor(fens,sensor):
+    working_boards = set()
+    for fen in fens:
         matching = True
-    working_boards.sort()
+        board = chess.Board(fen)
+        for square,piece in sensor:
+            if board.piece_at(square) != piece:
+                matching = False
+                break
+        if matching:
+            working_boards.add(board.fen())
+
     return working_boards
 
-def filter_my_move(boards, my_move):
-    filtered = []
-    for board in boards:
+def filter_my_move(fens, my_move,color):
+    filtered = set()
+    for fen in fens:
+        board = chess.Board(fen)
+        board.turn = color
         if my_move in board.legal_moves:
-            board_copy = board.copy()
-            board_copy.push(my_move)
-            filtered.append(board_copy)
+            board.push(my_move)
+            filtered.add(board.fen())
+    if not filtered:
+        print(f"[DESYNC] No board believed {my_move.uci()} was legal out of {len(fens)}")
+        for fen in fens:
+            board = chess.Board(fen)
+            board.turn = color
+            if my_move in board.legal_moves:
+                print(f"[!] THIS board believed the move was legal: {fen}")
+    # if len(filtered)>8000:
+    #     filtered = random.sample(filtered, 8000)
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
-def stockfish_move(board,engine):
+def stockfish_move(board,engine,time_per_board):
 
         # if we might be able to take the king, try to
         enemy_king_square = board.king(not board.turn)
@@ -116,7 +128,7 @@ def stockfish_move(board,engine):
         # otherwise, try to move with the stockfish chess engine
         try:
             board.clear_stack()
-            result = engine.play(board, chess.engine.Limit(time=0.5))
+            result = engine.play(board, chess.engine.Limit(time=time_per_board))
             return result.move.uci()
         except chess.engine.EngineTerminatedError:
             print('Stockfish Engine died')
@@ -126,17 +138,41 @@ def stockfish_move(board,engine):
         # if all else fails, pass
         return None
 
-def best_move(boards, engine):
+
+def best_move(fens, engine, move_actions, color):
+    fen_list = list(fens)
+    N = len(fen_list)
+
+    # Cap the belief set at 8000 boards
+    if N > 8000:
+        fen_list = random.sample(fen_list, 8000)
+        N = 8000
+    
+    time_per_board = 10/N if N>0 else 10
+
     best_moves = []
 
-    for board in boards:
-        if board.turn == chess.WHITE:  # or self.color
-            move = stockfish_move(board, engine)
-            if move:
-                best_moves.append(move)
+    for fen in fen_list:
+        board = chess.Board(fen)
+        # board.turn = color  # ensure correct turn
+        move = stockfish_move(board,engine,time_per_board)
+        if move:
+            for legal in move_actions:
+                # print(move == str(legal))
+                # print(move," ",legal)
+                # print(move_actions)
+                if move == str(legal):
+                    # print("here")
+                    best_moves.append(legal)
+                    break
 
     if not best_moves:
-        return None
+        print("[WARN] No valid moves from Stockfish — falling back randomly.")
+        return random.choice(move_actions) if move_actions else None
 
-    # print(best_moves)
-    return max(set(best_moves), key=best_moves.count)
+    # Use Counter for majority voting
+    move_counts = Counter(best_moves)
+    most_common_move = move_counts.most_common(1)[0][0]
+
+    print(f"[CHOOSE_MOVE] Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
+    return most_common_move

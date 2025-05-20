@@ -7,7 +7,7 @@ from main import *
 class Agent(Player):
     def __init__(self):
         self.board = None
-        self.all_possible_boards = None
+        self.all_possible_fens = None
         self.color = None
         self.my_piece_captured_square = None
 
@@ -18,7 +18,7 @@ class Agent(Player):
                 
     def handle_game_start(self, color, board, opponent_name):
         self.board = board.copy()
-        self.all_possible_boards = [self.board]
+        self.all_possible_fens = [self.board]
         self.color = color
 
     def handle_opponent_move_result(self, captured_my_piece, capture_square):
@@ -52,10 +52,10 @@ class Agent(Player):
     def handle_move_result(self, requested_move, taken_move, captured_opponent_piece, capture_square):
 
         if taken_move is not None:
-            filtered = filter_my_move(self.all_possible_boards, taken_move)
+            filtered = filter_my_move(self.all_possible_fens, taken_move)
 
             if not filtered:
-                self.all_possible_boards = filtered
+                self.all_possible_fens = filtered
                 self.board = filtered[0]  # Already has move applied
                 return
 
