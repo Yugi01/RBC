@@ -10,6 +10,7 @@ class RandomSensing(Player):
         self.all_possible_fens = None
         self.color = None
         self.my_piece_captured_square = None
+        self.turn = None
         #local
         self.engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
         #marking
@@ -20,8 +21,12 @@ class RandomSensing(Player):
         self.all_possible_fens = set()
         self.all_possible_fens.add(self.board.fen())
         self.color = color
+        self.turn = 0
 
     def handle_opponent_move_result(self, captured_my_piece, capture_square):
+        if self.color == chess.WHITE and self.turn == 0:
+            return
+        
         new_possible_fens = set()
 
         if captured_my_piece:    
@@ -30,23 +35,29 @@ class RandomSensing(Player):
                 attacks = attacking_squares(board, chess.square_name(capture_square))
                 for attack in attacks:
                     move = chess.Move.from_uci(attack)
+                    board_copy = board.copy()
                     if move in board.legal_moves:
-                        board.push(move)
-                        new_possible_fens.add(board.fen())
+                        board_copy.push(move)
+                        new_possible_fens.add(board_copy.fen())
+                        
         else:
             # Opponent did NOT capture — only consider non-capturing legal moves    
             for fen in self.all_possible_fens:
                 board = chess.Board(fen)
                 board.turn = not self.color
-                non_capture_moves = [m for m in board.legal_moves if not board.is_capture(m)]
+                # print("PL MOVES",get_moves(board))
+                non_capture_moves = [chess.Move.from_uci(m) for m in get_moves(board) if not board.is_capture(chess.Move.from_uci(m))]
                 fens = get_all_possible_future_from_move(board, non_capture_moves)
                 new_possible_fens.update(fens)
                 # new_possible_boards.append(chess.Board(fen))
-        fens_reduced = list(new_possible_fens)
-        if len(fens_reduced) > 8000:
-            fens_reduced = random.sample(fens_reduced,8000)
-        self.all_possible_fens = set(fens_reduced)
-
+        
+        # fens_reduced = list(new_possible_fens)
+        # print("reduced",len(fens_reduced))
+        # if len(fens_reduced) > 8000:
+        #     fens_reduced = random.sample(fens_reduced,8000)
+        if new_possible_fens:
+            self.all_possible_fens = set(new_possible_fens)
+        print("ALL ",len(self.all_possible_fens))
 
     def choose_sense(self, sense_actions, move_actions, seconds_left):
 
@@ -56,14 +67,14 @@ class RandomSensing(Player):
         return scan_square
 
     def handle_sense_result(self, sense_result):
-
         new_boards = reconsile_sensor(self.all_possible_fens,sense_result)
         if not new_boards:
             return
         self.all_possible_fens = new_boards
-        print("len",len(self.all_possible_fens))
+        print("all len",len(self.all_possible_fens))
 
     def choose_move(self, move_actions, seconds_left):
+        self.turn = self.turn +1
         self.board.turn = self.color
         return best_move(self.all_possible_fens, self.engine, move_actions, self.color)
 
@@ -84,7 +95,7 @@ class RandomSensing(Player):
                 # fallback: just push the move on current board to stay in sync
                 if self.board.is_legal(taken_move):
                     self.board.push(taken_move)
-                    self.all_possible_fens = {self.board.fen()} 
+                    # self.all_possible_fens = {self.board.fen()} 
                 else:
                     self.board.push(chess.Move.null())
         else:
@@ -93,11 +104,9 @@ class RandomSensing(Player):
                 board = chess.Board(fen)
                 if requested_move not in board.legal_moves:
                     illegal_fens.add(fen)
-                    if len(illegal_fens) > 8000:
-                        break
 
             if illegal_fens:
-                self.all_possible_fens = illegal_fens
+                self.all_possible_fens =  self.all_possible_fens - illegal_fens
             else:
                 fallback = self.board.copy()
                 fallback.push(chess.Move.null())
