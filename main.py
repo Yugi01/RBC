@@ -85,8 +85,8 @@ def useable_sensor_out(sensor):
 
 def reconsile_sensor(fens,sensor):
     working_boards = set()
-    print("FEN LEN GEN:",len(fens))
-    print(fens)
+    print("FEN LEN",len(fens))
+    # print(fens)
     for fen in fens:
         matching = True
         board = chess.Board(fen)
@@ -99,8 +99,6 @@ def reconsile_sensor(fens,sensor):
             elif actual is not None and piece is not None and \
                 actual.piece_type == piece.piece_type and \
                 actual.color == piece.color:
-                print("FEN: ",fen)
-                print("SENSOR: ", [(chess.square_name(s),p) for s,p in sensor] )
                 continue
 
             matching = False
@@ -119,15 +117,15 @@ def filter_my_move(fens, my_move,color):
     for fen in fens:
         board = chess.Board(fen)
         board.turn = color
-        if my_move in board.legal_moves:
+        if my_move.uci() in get_moves(board):
             board.push(my_move)
             filtered.add(board.fen())
             
     if not filtered:
         return fens
     
-    if len(filtered)>8000:
-        filtered = set(random.sample(list(filtered), 8000))
+    # if len(filtered)>8000:
+    #     filtered = set(random.sample(list(filtered), 8000))
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
@@ -189,12 +187,12 @@ def best_move(fens, engine, move_actions, color):
                     break
 
     if not best_moves:
-        print("[WARN] No valid moves from Stockfish — falling back randomly.")
+        print("falling back random.")
         return random.choice(move_actions) if move_actions else None
 
     # Use Counter for majority voting
     move_counts = Counter(best_moves)
     most_common_move = move_counts.most_common(1)[0][0]
 
-    print(f"[CHOOSE_MOVE] Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
+    print(f"Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
     return most_common_move
