@@ -109,7 +109,7 @@ def reconsile_sensor(fens,sensor):
     # working_boards.sort()
     if len(working_boards)>9000:
         working_boards = set(random.sample(list(working_boards), 9000))
-    print("WORKING BOARDS LEN",len(working_boards))
+    # print("WORKING BOARDS LEN",len(working_boards))
     return working_boards
 
 def filter_my_move(fens, my_move,color):
@@ -169,7 +169,7 @@ def best_move(fens, engine, move_actions, color):
     time_per_board = 9/N if N>0 else 9
 
     best_moves = []
-
+    # print("MOVE LENGTH: ",len(fen_list))
     for fen in fen_list:
         board = chess.Board(fen)
         # print(fen)
@@ -189,12 +189,12 @@ def best_move(fens, engine, move_actions, color):
                     break
 
     if not best_moves:
-        print("falling back random.")
+        # print("falling back random.")
         return random.choice(move_actions) if move_actions else None
 
     # Use Counter for majority voting
     move_counts = Counter(best_moves)
     most_common_move = move_counts.most_common(1)[0][0]
 
-    print(f"Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
+    # print(f"Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
     return most_common_move
