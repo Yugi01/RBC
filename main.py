@@ -65,9 +65,9 @@ def get_all_possible_future_from_move(board,moves):
     return all_out
     
     
-def attacking_squares(board,square):
+def attacking_squares(board,square,color):
     moves_to_exec = []
-    opp_colour = not board.turn
+    opp_colour = not color
     body_copy = board.copy()
     attackers = body_copy.attackers(opp_colour,chess.parse_square(square))
     for move in [chess.square_name(sq) for sq in attackers]:
@@ -107,6 +107,8 @@ def reconsile_sensor(fens,sensor):
             working_boards.add(board.fen())
         # matching = True
     # working_boards.sort()
+    if len(working_boards)>9000:
+        working_boards = set(random.sample(list(working_boards), 9000))
     print("WORKING BOARDS LEN",len(working_boards))
     return working_boards
 
@@ -124,8 +126,8 @@ def filter_my_move(fens, my_move,color):
     if not filtered:
         return fens
     
-    # if len(filtered)>8000:
-    #     filtered = set(random.sample(list(filtered), 8000))
+    if len(filtered)>9000:
+        filtered = set(random.sample(list(filtered), 9000))
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
@@ -142,8 +144,8 @@ def stockfish_move(board,engine,time_per_board,color):
 
         # otherwise, try to move with the stockfish chess engine
         try:
-            board.clear_stack()
             board.turn = color
+            board.clear_stack()
             result = engine.play(board, chess.engine.Limit(time=time_per_board))
             return result.move
         except chess.engine.EngineTerminatedError:
@@ -159,12 +161,12 @@ def best_move(fens, engine, move_actions, color):
     fen_list = list(fens)
     N = len(fen_list)
 
-    # Cap the belief set at 8000 boards
-    if N > 8000:
-        fen_list = random.sample(fen_list, 8000)
-        N = 8000
+    # Cap the belief set at 9000 boards
+    if N > 9000:
+        fen_list = random.sample(fen_list, 9000)
+        N = 9000
     
-    time_per_board = 8/N if N>0 else 8
+    time_per_board = 9/N if N>0 else 9
 
     best_moves = []
 

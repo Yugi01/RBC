@@ -32,7 +32,7 @@ class RandomSensing(Player):
         if captured_my_piece:    
             for fen in self.all_possible_fens:
                 board = chess.Board(fen)
-                attacks = attacking_squares(board, chess.square_name(capture_square))
+                attacks = attacking_squares(board, chess.square_name(capture_square),self.color)
                 for attack in attacks:
                     move = chess.Move.from_uci(attack)
                     board_copy = board.copy()
@@ -52,8 +52,8 @@ class RandomSensing(Player):
         
         # fens_reduced = list(new_possible_fens)
         # print("reduced",len(fens_reduced))
-        # if len(fens_reduced) > 8000:
-        #     fens_reduced = random.sample(fens_reduced,8000)
+        # if len(fens_reduced) > 9000:
+        #     fens_reduced = random.sample(fens_reduced,9000)
         if new_possible_fens:
             self.all_possible_fens = set(new_possible_fens)
         print("ALL ",len(self.all_possible_fens))
@@ -69,7 +69,7 @@ class RandomSensing(Player):
         new_boards = reconsile_sensor(self.all_possible_fens,sense_result)
         if not new_boards:
             return
-        # self.all_possible_fens = new_boards
+        self.all_possible_fens = new_boards
         print("all len",len(self.all_possible_fens))
 
     def choose_move(self, move_actions, seconds_left):
@@ -83,12 +83,18 @@ class RandomSensing(Player):
         if taken_move is not None:
             self.board.push(taken_move)
             filtered = filter_my_move(self.all_possible_fens, taken_move,self.color)
-            self.all_possible_fens = filtered
+            if filtered:
+                filter_reduced = list(filtered)
+                if(len(filter_reduced)>=9000):
+                    filter_reduced = random.sample(filter_reduced,9000)
+            self.all_possible_fens = set(filter_reduced)
+            # if len(filtered) >9000:
+            # self.all_possible_fens = filtered
         #     print(f"Taken_move: {taken_move.uci()}, filtered size: {len(filtered)}")
         #     if filtered:
         #         filter_reduced = list(filtered)
-        #         if(len(filter_reduced)>=8000):
-        #             filter_reduced = random.sample(filter_reduced,8000)
+        #         if(len(filter_reduced)>=9000):
+        #             filter_reduced = random.sample(filter_reduced,9000)
         #         self.all_possible_fens = set(filter_reduced)
         #         self.board = chess.Board(next(iter(filtered)))
         #     else:
