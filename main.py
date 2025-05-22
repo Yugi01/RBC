@@ -176,7 +176,11 @@ def run_round_robin():
     print("\n=== TroutBot (White) vs MyAgent (Black) ===")
     subprocess.run(["rc-bot-match", "reconchess.bots.TroutBot", "myAgent.MyAgent"], check=True)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     print("\n Round-robin complete. Check tournament_logs/.")
+=======
+    print("\n✅ Round-robin complete. Check tournament_logs/.")
+>>>>>>> Stashed changes
 =======
     print("\n✅ Round-robin complete. Check tournament_logs/.")
 >>>>>>> Stashed changes
@@ -226,7 +230,11 @@ def main():
         print(f)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # next state opred with cap
+=======
+    # -next state opred with cap
+>>>>>>> Stashed changes
 =======
     # -next state opred with cap
 >>>>>>> Stashed changes
