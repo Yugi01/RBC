@@ -4,9 +4,9 @@ from reconchess.utilities import is_illegal_castle
 from reconchess.utilities import is_psuedo_legal_castle
 from reconchess.utilities import without_opponent_pieces
 import chess.engine
-from collections import Counter
-import random
-import time
+import  subprocess
+import argparse
+import shutil
 
 #local
 # engine = chess.engine.SimpleEngine.popen_uci('./stockfish', setpgrp=True)
@@ -36,7 +36,7 @@ def get_pl_castle_moves(board):
     return temp
 
 def exec_move(board,move):
-    board.push(move)
+    board.push(chess.Move.from_uci(move))
 
 def remove_dups(list_moves):
     seen = []
@@ -47,29 +47,26 @@ def remove_dups(list_moves):
     return seen
 
 def get_moves(board):
-    board_copy = board.copy()
     null_move = ["0000"]
-    pl_moves = [str(move) for move in board_copy.pseudo_legal_moves]
-    pl_castle = get_pl_castle_moves(board_copy)
+    pl_moves = [str(move) for move in board.pseudo_legal_moves]
+    pl_castle = get_pl_castle_moves(board)
     all_moves = null_move + pl_castle + pl_moves
-    # all_moves.sort()
-    return set(all_moves)
+    all_moves.sort()
+    return remove_dups(all_moves)
 
 def get_all_possible_future_from_move(board,moves):
-    all_out = set()
+    all_out = []
     for move in moves:
         copy_board = board.copy()
-        copy_board.push(move)
-        all_out.add(copy_board.fen())
-    # all_out.sort()
+        exec_move(copy_board,move)
+        all_out.append(copy_board.fen())
+    all_out.sort()
     return all_out
     
-    
-def attacking_squares(board,square,color):
+def attacking_squares(board,square):
     moves_to_exec = []
-    opp_colour = not color
-    body_copy = board.copy()
-    attackers = body_copy.attackers(opp_colour,chess.parse_square(square))
+    opp_colour = board.turn
+    attackers = board.attackers(opp_colour,chess.parse_square(square))
     for move in [chess.square_name(sq) for sq in attackers]:
         moves_to_exec.append(move+square)
     return moves_to_exec
@@ -83,55 +80,32 @@ def useable_sensor_out(sensor):
         sensor_out.append({square:piece})
     return sensor_out
 
-def reconsile_sensor(fens,sensor):
-    working_boards = set()
-    print("FEN LEN",len(fens))
-    # print(fens)
-    for fen in fens:
-        matching = True
-        board = chess.Board(fen)
-        for square,piece in sensor:
-            
-            actual = board.piece_at(square)
-
-            if actual is None and piece is None:
-                continue
-            elif actual is not None and piece is not None and \
-                actual.piece_type == piece.piece_type and \
-                actual.color == piece.color:
-                continue
-
-            matching = False
-            break
+def reconsile_sensor(boards,sensor):
+    working_boards = []
+    matching = True
+    for board in boards:
+        for sen in sensor:
+            for square,piece in sen.items():
+                if str(board.piece_at(chess.parse_square(square))) == piece:
+                    continue
+                matching = False
         if matching:
-            working_boards.add(board.fen())
-        # matching = True
-    # working_boards.sort()
-    if len(working_boards)>9000:
-        working_boards = set(random.sample(list(working_boards), 9000))
-    # print("WORKING BOARDS LEN",len(working_boards))
+            working_boards.append(board.fen())
+        matching = True
+    working_boards.sort()
     return working_boards
 
-def filter_my_move(fens, my_move,color):
-    filtered = set()
-    if(len(fens)==0):
-        raise ValueError("FENS ARE empty")
-    for fen in fens:
-        board = chess.Board(fen)
-        board.turn = color
-        if my_move.uci() in get_moves(board):
-            board.push(my_move)
-            filtered.add(board.fen())
-            
-    if not filtered:
-        return fens
-    
-    if len(filtered)>9000:
-        filtered = set(random.sample(list(filtered), 9000))
+def filter_my_move(boards, my_move):
+    filtered = []
+    for board in boards:
+        if my_move in board.legal_moves:
+            board_copy = board.copy()
+            board_copy.push(my_move)
+            filtered.append(board_copy)
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
-def stockfish_move(board,engine,time_per_board,color):
+def stockfish_move(board,engine):
 
         # if we might be able to take the king, try to
         enemy_king_square = board.king(not board.turn)
@@ -140,14 +114,13 @@ def stockfish_move(board,engine,time_per_board,color):
             enemy_king_attackers = board.attackers(board.turn, enemy_king_square)
             if enemy_king_attackers:
                 attacker_square = enemy_king_attackers.pop()
-                return chess.Move(attacker_square, enemy_king_square)
+                return chess.Move(attacker_square, enemy_king_square).uci()
 
         # otherwise, try to move with the stockfish chess engine
         try:
-            board.turn = color
             board.clear_stack()
-            result = engine.play(board, chess.engine.Limit(time=time_per_board))
-            return result.move
+            result = engine.play(board, chess.engine.Limit(time=0.1))
+            return result.move.uci()
         except chess.engine.EngineTerminatedError:
             print('Stockfish Engine died')
         except chess.engine.EngineError:
@@ -156,45 +129,109 @@ def stockfish_move(board,engine,time_per_board,color):
         # if all else fails, pass
         return None
 
-
-def best_move(fens, engine, move_actions, color):
-    fen_list = list(fens)
-    N = len(fen_list)
-
-    # Cap the belief set at 9000 boards
-    if N > 9000:
-        fen_list = random.sample(fen_list, 9000)
-        N = 9000
-    
-    time_per_board = 9/N if N>0 else 9
-
+def best_move(boards, engine):
     best_moves = []
-    # print("MOVE LENGTH: ",len(fen_list))
-    for fen in fen_list:
-        board = chess.Board(fen)
-        # print(fen)
-        # board_copy = board.copy()
-        # board.turn = color  # ensure correct turn
-        move = stockfish_move(board,engine,time_per_board,color)
-        if move:
-            for legal in move_actions:
-                # print("LEGAL",legal)
-                # print()
-                # print(move == str(legal))
-                # print(move," ",legal)
-                # print(move_actions)
-                if move == legal:
-                    # print("here")
-                    best_moves.append(move)
-                    break
+
+    for board in boards:
+        if board.turn == chess.WHITE:  # or self.color
+            move = stockfish_move(board, engine)
+            if move:
+                best_moves.append(move)
 
     if not best_moves:
-        # print("falling back random.")
-        return random.choice(move_actions) if move_actions else None
+        return None
 
-    # Use Counter for majority voting
-    move_counts = Counter(best_moves)
-    most_common_move = move_counts.most_common(1)[0][0]
+    # print(best_moves)
+    return max(set(best_moves), key=best_moves.count)
 
-    # print(f"Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
-    return most_common_move
+
+# num_inputs = int(input())
+# boards = []
+# for i in range(num_inputs):
+#     fen_input = input()
+#     boards.append(chess.Board(fen_input))
+# print(best_move(boards))
+# sensor_raw = input()
+
+# useful_board = reconsile_sensor(boards,useable_sensor_out(sensor_raw))
+
+# for board in useful_board:
+#     print(board)
+
+# square = input()
+# all possible future states
+# for state in get_all_possible_future_from_move(board,attacking_squares(square)):
+#     print(state)
+# engine.quit()
+
+
+def run_round_robin():
+    subprocess.run(["mkdir", "-p", "tournament_logs"], check=True)
+    print("=== MyAgent (White) vs RandomBot (Black) ===")
+    subprocess.run(["rc-bot-match", "myAgent.MyAgent", "reconchess.bots.RandomBot"], check=True)
+    print("\n=== RandomBot (White) vs MyAgent (Black) ===")
+    subprocess.run(["rc-bot-match", "reconchess.bots.RandomBot", "myAgent.MyAgent"], check=True)
+    print("\n=== MyAgent (White) vs TroutBot (Black) ===")
+    subprocess.run(["rc-bot-match", "myAgent.MyAgent", "reconchess.bots.TroutBot"], check=True)
+    print("\n=== TroutBot (White) vs MyAgent (Black) ===")
+    subprocess.run(["rc-bot-match", "reconchess.bots.TroutBot", "myAgent.MyAgent"], check=True)
+    print("\n Round-robin complete. Check tournament_logs/.")
+
+
+def main():
+
+    parser = argparse.ArgumentParser(description="ReconChess labs & tournament runner")
+    parser.add_argument(
+
+        '--tournament', action='store_true', help='Run round-robin tournament'
+    )
+
+    args = parser.parse_args()
+
+    #if args.tournament:
+        #run_round_robin()
+        #return
+
+
+    # Locate Stockfish
+    sf = shutil.which('stockfish') or '/usr/games/stockfish'
+    try:
+        engine = chess.engine.SimpleEngine.popen_uci(sf, setpgrp=True)
+    except Exception:
+        print(f"Error: can't launch Stockfish at {sf}")
+        return
+
+    # next move predic
+    print("Enter N (number of boards):")
+    N = int(input().strip())
+    boards = []
+    for i in range(N):
+        print(f"Enter FEN #{i+1}:")
+        boards.append(chess.Board(input().strip()))
+    mv = best_move(boards, engine)
+    print(f"Best move (majority vote): {mv}")
+
+    # next state pred
+    print("Enter sensor window:")
+    sensor_raw = input().strip()
+    sensor_dicts = [{sq:pc} for part in sensor_raw.split(';') for sq,pc in [part.split(':')]]
+    valids = reconsile_sensor(boards, sensor_dicts)
+    print("Boards consistent with sense:")
+
+    for f in valids:
+        print(f)
+
+    # next state opred with cap
+    print("Enter capture square:")
+    cap_sq = input().strip()
+    base = chess.Board(valids[0]) if valids else boards[0]
+    futures = get_all_possible_future_from_move(base, attacking_squares(base, cap_sq))
+    print("Possible future states after capture:")
+
+    for f in futures:
+
+        print(f)
+
+    engine.quit()
+
+main()
