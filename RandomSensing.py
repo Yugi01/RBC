@@ -50,13 +50,13 @@ class RandomSensing(Player):
                 new_possible_fens.update(fens)
                 # new_possible_boards.append(chess.Board(fen))
         
-        # fens_reduced = list(new_possible_fens)
+        fens_reduced = list(new_possible_fens)
         # print("reduced",len(fens_reduced))
-        # if len(fens_reduced) > 9000:
-        #     fens_reduced = random.sample(fens_reduced,9000)
-        if new_possible_fens:
-            self.all_possible_fens = set(new_possible_fens)
-        print("ALL ",len(self.all_possible_fens))
+        if len(fens_reduced) > 9000:
+            fens_reduced = random.sample(fens_reduced,9000)
+        # if new_possible_fens:
+        self.all_possible_fens = set(fens_reduced)
+        # print("ALL ",len(self.all_possible_fens))
 
     def choose_sense(self, sense_actions, move_actions, seconds_left):
 
@@ -70,7 +70,7 @@ class RandomSensing(Player):
         if not new_boards:
             return
         self.all_possible_fens = new_boards
-        print("all len",len(self.all_possible_fens))
+        # print("all len",len(self.all_possible_fens))
 
     def choose_move(self, move_actions, seconds_left):
         self.turn = self.turn +1
@@ -78,8 +78,8 @@ class RandomSensing(Player):
         return best_move(self.all_possible_fens, self.engine, move_actions, self.color)
 
     def handle_move_result(self, requested_move, taken_move, captured_opponent_piece, capture_square):
-        print("REQ",requested_move)
-        print("TAKEN",taken_move)
+        # print("REQ",requested_move)
+        # print("TAKEN",taken_move)
         if taken_move is not None:
             self.board.push(taken_move)
             filtered = filter_my_move(self.all_possible_fens, taken_move,self.color)
@@ -88,36 +88,17 @@ class RandomSensing(Player):
                 if(len(filter_reduced)>=9000):
                     filter_reduced = random.sample(filter_reduced,9000)
             self.all_possible_fens = set(filter_reduced)
-            # if len(filtered) >9000:
-            # self.all_possible_fens = filtered
-        #     print(f"Taken_move: {taken_move.uci()}, filtered size: {len(filtered)}")
-        #     if filtered:
-        #         filter_reduced = list(filtered)
-        #         if(len(filter_reduced)>=9000):
-        #             filter_reduced = random.sample(filter_reduced,9000)
-        #         self.all_possible_fens = set(filter_reduced)
-        #         self.board = chess.Board(next(iter(filtered)))
-        #     else:
-        #         print(f"No boards believed move {taken_move.uci()} was legal!")
-        #         # fallback: just push the move on current board to stay in sync
-        #         if self.board.is_legal(taken_move):
-        #             self.board.push(taken_move)
-        #             # self.all_possible_fens = {self.board.fen()} 
-        #         else:
-        #             self.board.push(chess.Move.null())
         # else:
+        #     print("ILLEGAL STUFF")
         #     illegal_fens = set()
         #     for fen in self.all_possible_fens:
         #         board = chess.Board(fen)
         #         if requested_move.uci() not in get_moves(board):
         #             illegal_fens.add(fen)
-
+        #     print("THE FENS: ",illegal_fens)
         #     if illegal_fens:
         #         self.all_possible_fens =  self.all_possible_fens - illegal_fens
-        #     else:
-        #         fallback = self.board.copy()
-        #         fallback.push(chess.Move.null())
-        #         self.all_possible_fens = {fallback.fen()}
+        #     print("OUTTT: ",self.all_possible_fens)
 
     def handle_game_end(self, winner_color, win_reason, game_history):
         try:
