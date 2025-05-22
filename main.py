@@ -175,7 +175,11 @@ def run_round_robin():
     subprocess.run(["rc-bot-match", "myAgent.MyAgent", "reconchess.bots.TroutBot"], check=True)
     print("\n=== TroutBot (White) vs MyAgent (Black) ===")
     subprocess.run(["rc-bot-match", "reconchess.bots.TroutBot", "myAgent.MyAgent"], check=True)
+<<<<<<< Updated upstream
     print("\n Round-robin complete. Check tournament_logs/.")
+=======
+    print("\n✅ Round-robin complete. Check tournament_logs/.")
+>>>>>>> Stashed changes
 
 
 def main():
@@ -221,7 +225,11 @@ def main():
     for f in valids:
         print(f)
 
+<<<<<<< Updated upstream
     # next state opred with cap
+=======
+    # -next state opred with cap
+>>>>>>> Stashed changes
     print("Enter capture square:")
     cap_sq = input().strip()
     base = chess.Board(valids[0]) if valids else boards[0]
