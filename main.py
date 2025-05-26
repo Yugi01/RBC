@@ -107,8 +107,8 @@ def reconsile_sensor(fens,sensor):
             working_boards.add(board.fen())
         # matching = True
     # working_boards.sort()
-    if len(working_boards)>9000:
-        working_boards = set(random.sample(list(working_boards), 9000))
+    if len(working_boards)>8000:
+        working_boards = set(random.sample(list(working_boards), 8000))
     # print("WORKING BOARDS LEN",len(working_boards))
     return working_boards
 
@@ -126,8 +126,8 @@ def filter_my_move(fens, my_move,color):
     if not filtered:
         return fens
     
-    if len(filtered)>9000:
-        filtered = set(random.sample(list(filtered), 9000))
+    if len(filtered)>8000:
+        filtered = set(random.sample(list(filtered), 8000))
     return filtered
 
 #TROUTBOT CHOOSE_MOVE        
@@ -161,12 +161,12 @@ def best_move(fens, engine, move_actions, color):
     fen_list = list(fens)
     N = len(fen_list)
 
-    # Cap the belief set at 9000 boards
-    if N > 9000:
-        fen_list = random.sample(fen_list, 9000)
-        N = 9000
+    # Cap the belief set at 8000 boards
+    if N > 8000:
+        fen_list = random.sample(fen_list, 8000)
+        N = 8000
     
-    time_per_board = 9/N if N>0 else 9
+    time_per_board = 8/N if N>0 else 8
 
     best_moves = []
     # print("MOVE LENGTH: ",len(fen_list))
