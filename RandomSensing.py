@@ -271,9 +271,6 @@ def best_move(fens, engine, move_actions, color):
     # print("MOVE LENGTH: ",len(fen_list))
     for fen in fen_list:
         board = chess.Board(fen)
-        # print(fen)
-        # board_copy = board.copy()
-        # board.turn = color  # ensure correct turn
         move = stockfish_move(board,engine,time_per_board,color)
         if move:
             for legal in move_actions:
@@ -291,9 +288,7 @@ def best_move(fens, engine, move_actions, color):
         # print("falling back random.")
         return random.choice(move_actions) if move_actions else None
 
-    # Use Counter for majority voting
     move_counts = Counter(best_moves)
     most_common_move = move_counts.most_common(1)[0][0]
-
-    # print(f"Majority voted move: {most_common_move.uci()} (votes: {move_counts[most_common_move]})")
+    
     return most_common_move
