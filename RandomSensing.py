@@ -184,7 +184,7 @@ def useable_sensor_out(sensor):
 
 def reconsile_sensor(fens,sensor):
     working_boards = set()
-    print("FEN LEN",len(fens))
+    # print("FEN LEN",len(fens))
     # print(fens)
     for fen in fens:
         matching = True
@@ -214,7 +214,7 @@ def reconsile_sensor(fens,sensor):
 def filter_my_move(fens, my_move,color):
     filtered = set()
     if(len(fens)==0):
-        raise ValueError("FENS ARE empty")
+        return
     for fen in fens:
         board = chess.Board(fen)
         board.turn = color
