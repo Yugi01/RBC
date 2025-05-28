@@ -88,11 +88,16 @@ class RandomSensing(Player):
         if taken_move is not None:
             self.board.push(taken_move)
             filtered = filter_my_move(self.all_possible_fens, taken_move,self.color)
-            if filtered:
+            print("Random: ",len(filtered))
+            if len(filtered)>0:
                 filter_reduced = list(filtered)
-                if(len(filter_reduced)>=9000):
-                    filter_reduced = random.sample(filter_reduced,9000)
-            self.all_possible_fens = set(filter_reduced)
+                if(len(filter_reduced)>=8000):
+                    filter_reduced = random.sample(filter_reduced,8000)
+                self.all_possible_fens = set(filter_reduced)
+            else:
+                self.all_possible_fens = set(self.board)
+        else:
+            self.board.push(chess.Move.null())
         # else:
         #     print("ILLEGAL STUFF")
         #     illegal_fens = set()
